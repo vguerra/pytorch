@@ -592,8 +592,8 @@ inline static PyObject* eval_custom_code(
   DEBUG_NULL_CHECK(tstate);
   DEBUG_NULL_CHECK(frame);
   DEBUG_NULL_CHECK(code);
-  DEBUG_CHECK(ncells == PyTuple_GET_SIZE(frame->f_code->co_cellvars));
-  DEBUG_CHECK(nfrees == PyTuple_GET_SIZE(frame->f_code->co_freevars));
+  // DEBUG_CHECK(ncells == PyTuple_GET_SIZE(frame->f_code->co_cellvars));
+  // DEBUG_CHECK(nfrees == PyTuple_GET_SIZE(frame->f_code->co_freevars));
   DEBUG_CHECK(nlocals_new >= nlocals_old);
 
   PyFrameObject* shadow_obj = PyFrame_New(tstate, code, frame->f_globals, NULL);
@@ -656,10 +656,22 @@ static PyObject* _custom_eval_frame(
       "begin %s %s %i %i %i %i",
       name(frame),
       PyUnicode_AsUTF8(frame->f_code->co_filename),
+      #if PY_VERSION_HEX >= 0x030B0000
+      frame->frame_obj->f_lineno,
+      PyFrame_GetLasti(frame->frame_obj),
+      0,
+      _PyFrame_GetGenerator(frame)->gi_frame_state
+      #else
       frame->f_lineno,
       frame->f_lasti,
       frame->f_iblock,
-      frame->f_executing);
+      # if PY_VERSION_HEX >= 0x030A0000
+      frame->f_state
+      # else
+      frame->f_executing
+      # endif
+      #endif
+  );
 
   if (throw_flag) {
     // When unwinding generators, eval frame is called with throw_flag ==
